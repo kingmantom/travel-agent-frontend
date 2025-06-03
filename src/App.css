@@ -124,3 +124,19 @@
 .chat-footer button:hover {
   transform: scale(1.05);
 }
+
+.similar-button-wrapper {
+  text-align: center;
+  margin: 10px;
+}
+.similar-button {
+  background-color: #e0f7fa;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+.similar-button:hover {
+  background-color: #b2ebf2;
+}
