@@ -38,7 +38,7 @@ function App() {
     setIsLoading(true);
 
     try {
-      const res = await fetch("http://localhost:8000/ask", {
+      const res = await fetch("https://travel-agent-backend-ztzn.onrender.com/ask", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -95,7 +95,7 @@ function App() {
     if (!routeName) return;
     setIsLoading(true);
     try {
-      const res = await fetch("http://localhost:8000/similar", {
+      const res = await fetch("https://travel-agent-backend-ztzn.onrender.com/similar", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
