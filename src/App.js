@@ -22,6 +22,11 @@ function App() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  const extractRoutesFromResponse = (text) => {
+    const matches = text?.match(/(?<=["\u05F4“”])[^"\u05F4“”]+(?=["\u05F4“”])/g);
+    return matches ? [...new Set(matches)] : [];
+  };
+
   const handleSendMessage = async () => {
     setPreviousSuggestions([]);
     if (!input.trim()) return;
@@ -38,15 +43,10 @@ function App() {
     setIsLoading(true);
 
     try {
-      const res = await fetch("https://travel-agent-backend-ztzn.onrender.com/ask", {
+      const res = await fetch("http://localhost:8000/ask", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          message: input,
-          ...(context ? { context } : {}),
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: input, ...(context ? { context } : {}) }),
       });
 
       const data = await res.json();
@@ -60,32 +60,54 @@ function App() {
 
       setMessages((prev) => [...prev, botMessage]);
 
-      const routeMatches = data.response?.match(/["״](.*?)["״]/g);
-      if (routeMatches) {
-        const cleaned = [...new Set(routeMatches.map((text) => text.replace(/["״]/g, "")))];
-        setSuggestedRoutes(cleaned);
-        setPreviousSuggestions(cleaned);
-      } else {
-        setSuggestedRoutes([]);
-        setPreviousSuggestions([]);
-      }
+      const cleaned = extractRoutesFromResponse(data.response);
+      setSuggestedRoutes(cleaned);
+      setPreviousSuggestions(cleaned);
 
-      if (data.context) {
-        setContext(data.context);
-      } else {
-        setContext(null);
-      }
+      setContext(data.context || null);
+    } catch {
+      setMessages((prev) => [...prev, {
+        id: Date.now().toString(),
+        content: "שגיאה בתקשורת עם השרת 😕",
+        sender: "bot",
+        timestamp: new Date(),
+      }]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-    } catch (err) {
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: Date.now().toString(),
-          content: "שגיאה בתקשורת עם השרת 😕",
-          sender: "bot",
-          timestamp: new Date(),
-        },
-      ]);
+  const handleAccessibilityResponse = async (wantsAccessibility) => {
+    if (!context) return;
+    setIsLoading(true);
+    try {
+      const res = await fetch("http://localhost:8000/ask", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: wantsAccessibility ? "כן" : "לא", context }),
+      });
+
+      const data = await res.json();
+
+      setMessages((prev) => [...prev, {
+        id: Date.now().toString(),
+        content: data.response || "שגיאה בעיבוד הבקשה 😕",
+        sender: "bot",
+        timestamp: new Date(),
+      }]);
+
+      const cleaned = extractRoutesFromResponse(data.response);
+      setSuggestedRoutes(cleaned);
+      setPreviousSuggestions(cleaned);
+
+      setContext(null);
+    } catch {
+      setMessages((prev) => [...prev, {
+        id: Date.now().toString(),
+        content: "שגיאה בשליחת הנתונים לשרת 😕",
+        sender: "bot",
+        timestamp: new Date(),
+      }]);
     } finally {
       setIsLoading(false);
     }
@@ -95,35 +117,28 @@ function App() {
     if (!routeName) return;
     setIsLoading(true);
     try {
-      const res = await fetch("https://travel-agent-backend-ztzn.onrender.com/similar", {
+      const res = await fetch("http://localhost:8000/similar", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ route_name: routeName }),
       });
 
       const data = await res.json();
 
-      const similarMessage = {
+      setMessages((prev) => [...prev, {
         id: Date.now().toString(),
         content: data.response || "לא נמצאו מסלולים דומים 😅",
         sender: "bot",
         timestamp: new Date(),
-      };
-
-      setMessages((prev) => [...prev, similarMessage]);
+      }]);
       setSuggestedRoutes([]);
     } catch {
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: Date.now().toString(),
-          content: "שגיאה בשליפת מסלולים דומים 😕",
-          sender: "bot",
-          timestamp: new Date(),
-        },
-      ]);
+      setMessages((prev) => [...prev, {
+        id: Date.now().toString(),
+        content: "שגיאה בשליפת מסלולים דומים 😕",
+        sender: "bot",
+        timestamp: new Date(),
+      }]);
     } finally {
       setIsLoading(false);
     }
@@ -131,6 +146,21 @@ function App() {
 
   const handleBackToSuggestions = () => {
     setSuggestedRoutes(previousSuggestions);
+  };
+
+  const handleResetChat = () => {
+    setMessages([
+      {
+        id: "1",
+        content: "שלום! אני העוזר שלך למציאת מסלולי טיול בישראל. איך אוכל לעזור לך היום?",
+        sender: "bot",
+        timestamp: new Date(),
+      },
+    ]);
+    setInput("");
+    setContext(null);
+    setSuggestedRoutes([]);
+    setPreviousSuggestions([]);
   };
 
   const handleKeyDown = (e) => {
@@ -166,6 +196,14 @@ function App() {
           </div>
         </div>
 
+        {context?.followup_required && !isLoading && (
+          <div className="similar-button-wrapper">
+            <p>האם חשוב לך שהמסלול יהיה נגיש לנכים?</p>
+            <button className="similar-button" onClick={() => handleAccessibilityResponse(true)}>כן</button>
+            <button className="similar-button" onClick={() => handleAccessibilityResponse(false)}>לא</button>
+          </div>
+        )}
+
         {suggestedRoutes.length > 0 && !isLoading && (
           <div className="similar-button-wrapper">
             <p>🔁 רוצה לראות מסלולים דומים לאחד מהם?</p>
@@ -195,6 +233,12 @@ function App() {
           />
           <button onClick={handleSendMessage} disabled={isLoading || !input.trim()}>
             <Send size={20} />
+          </button>
+        </div>
+
+        <div className="reset-button-wrapper">
+          <button className="similar-button" onClick={handleResetChat}>
+            🛑 סיים שיחה והתחל מחדש
           </button>
         </div>
       </div>
