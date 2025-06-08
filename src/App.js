@@ -81,7 +81,7 @@ function App() {
     if (!context) return;
     setIsLoading(true);
     try {
-      const res = await fetch("ב/ask", {
+      const res = await fetch("https://travel-agent-backend-ztzn.onrender.com/ask", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: wantsAccessibility ? "כן" : "לא", context }),
