@@ -43,7 +43,7 @@ function App() {
     setIsLoading(true);
 
     try {
-      const res = await fetch("https://travel-agent-backend-ztzn.onrender.com/ask", {
+      const res = await fetch("http://localhost:8000/ask", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: input, ...(context ? { context } : {}) }),
@@ -81,7 +81,7 @@ function App() {
     if (!context) return;
     setIsLoading(true);
     try {
-      const res = await fetch("https://travel-agent-backend-ztzn.onrender.com/ask", {
+      const res = await fetch("http://localhost:8000/ask", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: wantsAccessibility ? "כן" : "לא", context }),
@@ -117,7 +117,7 @@ function App() {
     if (!routeName) return;
     setIsLoading(true);
     try {
-      const res = await fetch("https://travel-agent-backend-ztzn.onrender.com/similar", {
+      const res = await fetch("http://localhost:8000/similar", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ route_name: routeName }),
